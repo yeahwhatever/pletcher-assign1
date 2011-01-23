@@ -46,8 +46,27 @@ void uocrypt_init() {
     }
 }
 
-void uocrypt_hash_md5(char *pass) {
-    gcry_error_t err = NULL;
-    
+void uocrypt_print(char *str, int len) {
+    int i;
+    for(i = 0; i < len; i++)
+        printf("%02x", (unsigned char)str[i]);
 
+    printf("\n");
+}
+
+void uocrypt_hash_md5(char *input) {
+    char digest[16], pass[16];
+    int i;
+
+    /* Right pad the pass with 0's */
+    for (i = strlen(input) - 1; i < 16; i++)
+        input[i] = '0';
+
+    memcpy(pass, input, sizeof(pass));
+
+    uocrypt_print(pass, 16);
+
+    gcry_md_hash_buffer(GCRY_MD_MD5, digest, pass, 16);
+
+    uocrypt_print(digest, 16);
 }
