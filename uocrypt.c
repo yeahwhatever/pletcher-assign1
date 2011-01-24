@@ -19,8 +19,11 @@ void* xmalloc(size_t i) {
 
 /* Close file handles and free alloc'd memory, if alloc'd */
 void clean(FILE *in, FILE *out, char *outfile, int argc) {
-    fclose(in);
-    fclose(out);
+    /* Apparently these can be come null if the file is empty? */
+    if (in)
+        fclose(in);
+    if (out)
+        fclose(out);
     if (argc == 2)
         free(outfile);
 }
