@@ -6,6 +6,17 @@ void usage(char *name) {
     printf("Usage: %s <input file> [<output file>]\n", name);
 }
 
+void* xmalloc(size_t i) {
+    void *ptr;
+
+    ptr = malloc(i);
+
+    if (!ptr)
+        exit(255);
+
+    return ptr;
+}
+
 
 /* Ripped from the manual
  * http://www.gnupg.org/documentation/manuals/gcrypt/Error-Strings.html#Error-Strings */
@@ -46,27 +57,41 @@ void uocrypt_init() {
     }
 }
 
-void uocrypt_print(char *str, int len) {
-    int i;
+/* Print data in hex mostly for debugging */
+void uocrypt_print(char *str, size_t len) {
+    unsigned int i;
     for(i = 0; i < len; i++)
         printf("%02x", (unsigned char)str[i]);
 
     printf("\n");
 }
 
-void uocrypt_hash_md5(char *input) {
-    char digest[16], pass[16];
-    int i;
-
+/* Zero pad and strip new line and null terminator */
+void uocrypt_zero_pad(char *input, char *pass, size_t len) {
+    unsigned int i;
     /* Right pad the pass with 0's */
-    for (i = strlen(input) - 1; i < 16; i++)
+    for (i = strlen(input) - 1; i < len; i++)
         input[i] = '0';
 
-    memcpy(pass, input, sizeof(pass));
+    memcpy(pass, input, len);
 
-    uocrypt_print(pass, 16);
+#if DEBUG
+    printf("DEBUG: Zero padded password=");
+    uocrypt_print(pass, len);
+#endif 
+}
 
-    gcry_md_hash_buffer(GCRY_MD_MD5, digest, pass, 16);
+void uocrypt_hash_md5(char *pass, size_t len) {
+    char digest[16];
 
-    uocrypt_print(digest, 16);
+    gcry_md_hash_buffer(GCRY_MD_MD5, digest, pass, len);
+
+    /* Copy back into pass */
+    memcpy(pass, digest, len);
+
+#if DEBUG
+    printf("DEBUG: Hashed password=");
+    uocrypt_print(pass, len);
+#endif
+
 }
