@@ -6,6 +6,7 @@ int main(int argc, char** argv) {
     FILE *in, *out;
     /* 16 byes, plus two for newline and null */
     char input[18], pass[16];
+    unsigned int total;
 
     /* Parse argv */
     if (argc < 2 || argc > 3) {
@@ -22,6 +23,13 @@ int main(int argc, char** argv) {
         }
 
         in = fopen(infile, "rb");
+        out = fopen(outfile, "rb");
+        if (out) {
+            printf("Output file [%s] already exists.\nAborting operation.\n", outfile);
+            clean(in, out, outfile, argc);
+            return 2;
+        } else 
+            fclose(out);
         out = fopen(outfile, "wb");
     }
 
@@ -41,17 +49,21 @@ int main(int argc, char** argv) {
     uocrypt_zero_pad(input, pass, sizeof(pass));
     uocrypt_hash_md5(pass, sizeof(pass));
 
-    uoenc(pass, sizeof(pass), in, out);
+    total = uoenc(pass, sizeof(pass), in, out);
+
+    printf("Successfully encrypted %s to %s (%u bytes written).", infile, outfile, total);
+    clean(in, out, outfile, argc);
 
     return 0;
 }
 
-void uoenc(char *pass, size_t len, FILE *in, FILE *out) {
+unsigned int uoenc(char *pass, size_t len, FILE *in, FILE *out) {
     gcry_cipher_hd_t h;
     gcry_error_t err;
 
     char buffer[1024], encrypt[1024];
     unsigned short rbytes = 0, wbytes = 0;
+    unsigned int total = 0;
 
     /* Open a cipher handle.. */
     err = gcry_cipher_open(&h, GCRY_CIPHER_RIJNDAEL128, GCRY_CIPHER_MODE_CBC, 0);
@@ -91,11 +103,14 @@ void uoenc(char *pass, size_t len, FILE *in, FILE *out) {
         uocrypt_print(buffer, sizeof(buffer));
         uocrypt_print(encrypt, sizeof(encrypt));
 #endif
-        wbytes = fwrite(encrypt, 1, sizeof(encrypt), out);
+        wbytes = fwrite(encrypt, sizeof(encrypt[0]), sizeof(encrypt), out);
+        total += wbytes;
 
         printf("Read %u bytes, wrote %u bytes\n", rbytes, wbytes);
     }
 
     /* Clean Up */
     gcry_cipher_close(h);
+    
+    return total;
 }

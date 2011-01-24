@@ -13,6 +13,7 @@
 
 void usage(char *name);
 void* xmalloc(size_t i);
+void clean(FILE *in, FILE *out, char* outfile, int argc);
 void uocrypt_init();
 void uocrypt_error(gcry_error_t err);
 void uocrypt_print(char * str, size_t len);

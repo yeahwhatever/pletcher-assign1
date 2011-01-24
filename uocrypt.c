@@ -17,6 +17,14 @@ void* xmalloc(size_t i) {
     return ptr;
 }
 
+/* Close file handles and free alloc'd memory, if alloc'd */
+void clean(FILE *in, FILE *out, char *outfile, int argc) {
+    fclose(in);
+    fclose(out);
+    if (argc == 3)
+        free(outfile);
+}
+
 
 /* Ripped from the manual
  * http://www.gnupg.org/documentation/manuals/gcrypt/Error-Strings.html#Error-Strings */
