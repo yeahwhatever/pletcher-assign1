@@ -1,7 +1,6 @@
 #ifndef _UOENC
 #define _UOENC 1
 
-#include <stdio.h>
-#include <string.h>
+void uoenc(char *pass, size_t len, FILE *in, FILE *out);
 
 #endif
