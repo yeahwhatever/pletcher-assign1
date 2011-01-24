@@ -97,6 +97,8 @@ unsigned int uodec(char *pass, size_t len, FILE *in, FILE *out) {
 
     while (!feof(in)) {
         rbytes = fread(buffer, sizeof(buffer[0]), sizeof(buffer), in);
+        if (!rbytes)
+            continue;
         err = gcry_cipher_decrypt(h, decrypt, sizeof(decrypt), buffer, sizeof(buffer));
         uocrypt_error(err);
 
