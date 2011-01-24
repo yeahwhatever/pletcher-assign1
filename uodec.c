@@ -14,7 +14,7 @@ int main(int argc, char** argv) {
         return 1;
     } else {
         infile = argv[1];
-        if (argc == 4)
+        if (argc == 3)
             outfile = argv[2];
         else {
             outfile = xmalloc(sizeof(argv[1]) + 3);
@@ -27,12 +27,11 @@ int main(int argc, char** argv) {
         out = fopen(outfile, "rb");
         /* File exists, clean up and bail */
         if (out) {
-            printf("Output file [%s] already exists.\n", outfile);
+            printf("Output file [%s] already exists.\nAborting operation.\n", outfile);
             clean(in, out, outfile, argc);
             return 2;
         /* We're good */
-        } else 
-            fclose(out);
+        } 
         out = fopen(outfile, "wb");
     }
 

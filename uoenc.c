@@ -14,7 +14,7 @@ int main(int argc, char** argv) {
         return 1;
     } else {
         infile = argv[1];
-        if (argc == 4)
+        if (argc == 3)
             outfile = argv[2];
         else {
             outfile = xmalloc(sizeof(argv[1]) + 3);
@@ -28,8 +28,7 @@ int main(int argc, char** argv) {
             printf("Output file [%s] already exists.\nAborting operation.\n", outfile);
             clean(in, out, outfile, argc);
             return 2;
-        } else 
-            fclose(out);
+        } 
         out = fopen(outfile, "wb");
     }
 
@@ -51,7 +50,7 @@ int main(int argc, char** argv) {
 
     total = uoenc(pass, sizeof(pass), in, out);
 
-    printf("Successfully encrypted %s to %s (%u bytes written).", infile, outfile, total);
+    printf("Successfully encrypted %s to %s (%u bytes written).\n", infile, outfile, total);
     clean(in, out, outfile, argc);
 
     return 0;

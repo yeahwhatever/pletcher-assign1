@@ -21,7 +21,7 @@ void* xmalloc(size_t i) {
 void clean(FILE *in, FILE *out, char *outfile, int argc) {
     fclose(in);
     fclose(out);
-    if (argc == 3)
+    if (argc == 2)
         free(outfile);
 }
 
