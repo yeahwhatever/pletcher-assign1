@@ -51,9 +51,7 @@ void uoenc(char *pass, size_t len, FILE *in, FILE *out) {
     gcry_error_t err;
 
     char buffer[1024], encrypt[1024];
-    size_t rbytes = 0, wbytes = 0;
-
-    out = NULL;
+    unsigned short rbytes = 0, wbytes = 0;
 
     /* Open a cipher handle.. */
     err = gcry_cipher_open(&h, GCRY_CIPHER_RIJNDAEL128, GCRY_CIPHER_MODE_CBC, 0);
@@ -83,8 +81,8 @@ void uoenc(char *pass, size_t len, FILE *in, FILE *out) {
     printf("DEBUG: gcrypt handle init vector set\n");
 #endif
 
-    do {
-        rbytes = fread(buffer, sizeof(buffer), 1, in);
+    while (!feof(in)) {
+        rbytes = fread(buffer, sizeof(buffer[0]), sizeof(buffer), in);
         err = gcry_cipher_encrypt(h, encrypt, sizeof(encrypt), buffer, sizeof(buffer));
         uocrypt_error(err);
 
@@ -93,9 +91,10 @@ void uoenc(char *pass, size_t len, FILE *in, FILE *out) {
         uocrypt_print(buffer, sizeof(buffer));
         uocrypt_print(encrypt, sizeof(encrypt));
 #endif
+        wbytes = fwrite(encrypt, 1, sizeof(encrypt), out);
+
         printf("Read %u bytes, wrote %u bytes\n", rbytes, wbytes);
-        /* wbytes = fwrite(encrypt, sizeof(encrypt), 1, out); */
-    } while (rbytes);
+    }
 
     /* Clean Up */
     gcry_cipher_close(h);

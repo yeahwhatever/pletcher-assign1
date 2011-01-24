@@ -9,7 +9,7 @@
 
 #define DEBUG 1
 #define IV "ae6a8419985e8c5b9f890d983bf230e9"
-#define IV_SIZE sizeof(IV) - 1
+#define IV_SIZE 16
 
 void usage(char *name);
 void* xmalloc(size_t i);
