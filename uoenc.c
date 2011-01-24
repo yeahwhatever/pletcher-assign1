@@ -3,6 +3,7 @@
 
 int main(int argc, char** argv) {
     char *infile, *outfile = NULL;
+    FILE *in, *out;
     /* 16 byes, plus two for newline and null */
     char input[18], pass[16];
 
@@ -19,6 +20,9 @@ int main(int argc, char** argv) {
             strcpy(outfile, infile);
             strcat(outfile, ".uo");
         }
+
+        in = fopen(infile, "rb");
+        out = fopen(outfile, "wb");
     }
 
 #if DEBUG
@@ -37,6 +41,35 @@ int main(int argc, char** argv) {
     uocrypt_zero_pad(input, pass, sizeof(pass));
     uocrypt_hash_md5(pass, sizeof(pass));
 
+
     return 0;
 }
 
+void uoenc(char *pass, size_t len, FILE *in, FILE *out) {
+    gcry_cipher_hd_t h;
+    gcry_error_t err;
+
+    char buffer[1024];
+    size_t b, pad;
+
+    /* Open a cipher handle.. */
+    err = gcry_cipher_open(&h, GCRY_CIPHER_RIJNDAEL128, GCRY_CIPHER_MODE_CBC, 0);
+
+    /* Check for errors */
+    uocrypt_error(err);
+
+    /* Set the key */
+    err = gcry_cipher_setkey(h, pass, len);
+    uocrypt_error(err);
+
+    /* Set the initialization vector */
+    err = gcry_cipher_setiv(h, IV, IV_SIZE);
+
+    while (b = read(*in, buffer, sizeof(buffer))) {
+        if (b < sizeof(buffer)) {
+            pad = b % sizeof(buffer);
+        }
+    }
+    /* Clean Up */
+    gcry_cipher_close(h);
+}
