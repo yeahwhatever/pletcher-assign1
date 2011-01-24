@@ -17,7 +17,7 @@ int main(int argc, char** argv) {
         if (argc == 3)
             outfile = argv[2];
         else {
-            outfile = xmalloc(sizeof(argv[1]) + 3);
+            outfile = xmalloc(strlen(argv[1]) + 4);
             strcpy(outfile, infile);
             strcat(outfile, ".uo");
         }
@@ -48,10 +48,10 @@ int main(int argc, char** argv) {
     fgets(input, sizeof input, stdin);
 
     /* Hash it */
-    uocrypt_zero_pad(input, pass, sizeof(pass));
-    uocrypt_hash_md5(pass, sizeof(pass));
+    uocrypt_zero_pad(input, pass, sizeof pass);
+    uocrypt_hash_md5(pass, sizeof pass);
 
-    total = uodec(pass, sizeof(pass), in, out);
+    total = uodec(pass, sizeof pass, in, out);
 
     printf("Successfully decrypted %s to %s (%u bytes written).\n", infile, outfile, total);
     clean(in, out, outfile, argc);
@@ -96,24 +96,24 @@ unsigned int uodec(char *pass, size_t len, FILE *in, FILE *out) {
 #endif
 
     while (!feof(in)) {
-        rbytes = fread(buffer, sizeof(buffer[0]), sizeof(buffer), in);
+        rbytes = fread(buffer, sizeof buffer[0], sizeof buffer, in);
         if (!rbytes)
             continue;
-        err = gcry_cipher_decrypt(h, decrypt, sizeof(decrypt), buffer, sizeof(buffer));
+        err = gcry_cipher_decrypt(h, decrypt, sizeof decrypt, buffer, sizeof buffer);
         uocrypt_error(err);
 
 #if DEBUG > 1
         printf("DEBUG: decrypt=\n");
-        uocrypt_print(buffer, sizeof(buffer));
-        uocrypt_print(decrypt, sizeof(decrypt));
+        uocrypt_print(buffer, sizeof buffer);
+        uocrypt_print(decrypt, sizeof decrypt);
 #endif
 
-        for (i = 0; i < sizeof(decrypt); i++) {
+        for (i = 0; i < sizeof decrypt; i++) {
             if (decrypt[i] == EOF)
                 break;
         }
 
-        wbytes = fwrite(decrypt, sizeof(decrypt[0]), i, out);
+        wbytes = fwrite(decrypt, sizeof decrypt[0], i, out);
         total += wbytes;
 
         printf("read %u bytes, wrote bytes %u\n", rbytes, wbytes);
