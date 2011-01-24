@@ -7,7 +7,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 
-#define DEBUG 1
+#define DEBUG 0
 #define IV "ae6a8419985e8c5b9f890d983bf230e9"
 #define IV_SIZE 16
 

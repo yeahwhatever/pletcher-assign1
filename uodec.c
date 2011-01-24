@@ -65,7 +65,7 @@ unsigned int uodec(char *pass, size_t len, FILE *in, FILE *out) {
 
     char buffer[1024], decrypt[1024];
     unsigned short rbytes = 0, wbytes = 0;
-    unsigned int total;
+    unsigned int total, i;
 
     /* Open a cipher handle.. */
     err = gcry_cipher_open(&h, GCRY_CIPHER_RIJNDAEL128, GCRY_CIPHER_MODE_CBC, 0);
@@ -102,12 +102,18 @@ unsigned int uodec(char *pass, size_t len, FILE *in, FILE *out) {
         err = gcry_cipher_decrypt(h, decrypt, sizeof(decrypt), buffer, sizeof(buffer));
         uocrypt_error(err);
 
-#if DEBUG
+#if DEBUG > 1
         printf("DEBUG: decrypt=\n");
         uocrypt_print(buffer, sizeof(buffer));
         uocrypt_print(decrypt, sizeof(decrypt));
 #endif
-        wbytes = fwrite(decrypt, sizeof(decrypt[0]), sizeof(decrypt), out);
+
+        for (i = 0; i < sizeof(decrypt); i++) {
+            if (decrypt[i] == EOF)
+                break;
+        }
+
+        wbytes = fwrite(decrypt, sizeof(decrypt[0]), i, out);
         total += wbytes;
 
         printf("read %u bytes, wrote bytes %u\n", rbytes, wbytes);
