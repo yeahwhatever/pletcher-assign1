@@ -62,7 +62,7 @@ unsigned int uoenc(char *pass, size_t len, FILE *in, FILE *out) {
 
     char buffer[1024], encrypt[1024];
     unsigned short rbytes = 0, wbytes = 0;
-    unsigned int total = 0;
+    unsigned int total = 0, pad;
 
     /* Open a cipher handle.. */
     err = gcry_cipher_open(&h, GCRY_CIPHER_RIJNDAEL128, GCRY_CIPHER_MODE_CBC, 0);
@@ -94,17 +94,34 @@ unsigned int uoenc(char *pass, size_t len, FILE *in, FILE *out) {
 
     while (!feof(in)) {
         /* Zero it before reading */
-        memset(buffer, 0, sizeof buffer);
+        pad = 0;
         rbytes = fread(buffer, sizeof buffer[0], sizeof buffer, in);
-        err = gcry_cipher_encrypt(h, encrypt, sizeof encrypt, buffer, sizeof buffer);
+        if (rbytes < sizeof buffer) {
+            /* AES has a 16byte blocksize... */
+            pad = BLOCK_SIZE - rbytes % BLOCK_SIZE;
+            /* Lets use PKCS7
+             * http://tools.ietf.org/html/rfc5652#section-6.3 */
+            if (!pad)
+                pad = BLOCK_SIZE;
+            memset(&buffer[rbytes], pad, pad);
+        /* This is the case where input is exactly 1024 bytes, and we need
+         * a padding block on the next run through */
+        } else if (!rbytes) {
+            rbytes = BLOCK_SIZE;
+            memset(buffer, rbytes, rbytes);
+        }
+#if DEBUG
+        printf("DEBUG: Read/write bytes=%u\n", rbytes + pad);
+#endif
+        err = gcry_cipher_encrypt(h, encrypt, rbytes + pad, buffer, rbytes + pad);
         uocrypt_error(err);
 
 #if DEBUG > 1
         printf("DEBUG: encrypt=\n");
-        uocrypt_print(buffer, sizeof buffer);
-        uocrypt_print(encrypt, sizeof encrypt);
+        uocrypt_print(buffer, rbytes + pad);
+        uocrypt_print(encrypt, rbytes + pad);
 #endif
-        wbytes = fwrite(encrypt, sizeof encrypt[0] , sizeof encrypt, out);
+        wbytes = fwrite(encrypt, sizeof encrypt[0], rbytes + pad, out);
         total += wbytes;
 
         printf("Read %u bytes, wrote %u bytes\n", rbytes, wbytes);

@@ -65,7 +65,7 @@ unsigned int uodec(char *pass, size_t len, FILE *in, FILE *out) {
 
     char buffer[1024], decrypt[1024];
     unsigned short rbytes = 0, wbytes = 0;
-    unsigned int total, i;
+    unsigned int total;
 
 
     /* Open a cipher handle.. */
