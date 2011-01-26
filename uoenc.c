@@ -93,9 +93,9 @@ unsigned int uoenc(char *pass, size_t len, FILE *in, FILE *out) {
 #endif
 
     while (!feof(in)) {
+        /* Zero it before reading */
+        memset(buffer, 0, sizeof buffer);
         rbytes = fread(buffer, sizeof buffer[0], sizeof buffer, in);
-        if (rbytes < sizeof buffer)
-            buffer[rbytes] = EOF;
         err = gcry_cipher_encrypt(h, encrypt, sizeof encrypt, buffer, sizeof buffer);
         uocrypt_error(err);
 
