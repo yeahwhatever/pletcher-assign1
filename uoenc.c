@@ -60,7 +60,7 @@ unsigned int uoenc(char *pass, size_t len, FILE *in, FILE *out) {
     gcry_cipher_hd_t h;
     gcry_error_t err;
 
-    char buffer[1024], encrypt[1024];
+    unsigned char buffer[1024], encrypt[1024];
     unsigned short rbytes = 0, wbytes = 0;
     unsigned int total = 0, pad;
 

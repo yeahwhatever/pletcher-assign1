@@ -63,9 +63,10 @@ unsigned int uodec(char *pass, size_t len, FILE *in, FILE *out) {
     gcry_cipher_hd_t h;
     gcry_error_t err;
 
-    char buffer[1024], decrypt[1024];
+    unsigned char buffer[1024], decrypt[1024];
     unsigned short rbytes = 0, wbytes = 0;
-    unsigned int total;
+    unsigned int total, pad;
+    long size;
 
 
     /* Open a cipher handle.. */
@@ -96,11 +97,17 @@ unsigned int uodec(char *pass, size_t len, FILE *in, FILE *out) {
     printf("DEBUG: gcrypt handle init vector set\n");
 #endif
 
+    /* Get the filesize so we know when to remove padding */
+    fseek(in, 0L, SEEK_END);
+    size = ftell(in);
+    fseek(in, 0L, SEEK_SET);
+
     while (!feof(in)) {
+        pad = 0;
         rbytes = fread(buffer, sizeof buffer[0], sizeof buffer, in);
         if (!rbytes)
             continue;
-        err = gcry_cipher_decrypt(h, decrypt, sizeof decrypt, buffer, sizeof buffer); 
+        err = gcry_cipher_decrypt(h, decrypt, rbytes, buffer, rbytes); 
         uocrypt_error(err);
 
 #if DEBUG > 1
@@ -108,8 +115,11 @@ unsigned int uodec(char *pass, size_t len, FILE *in, FILE *out) {
         uocrypt_print(buffer, sizeof buffer);
         uocrypt_print(decrypt, sizeof decrypt);
 #endif
+        /* Remove padding */
+        if (rbytes < sizeof buffer || ftell(in) == size)
+            pad = decrypt[rbytes-1];
 
-        wbytes = fwrite(decrypt, sizeof decrypt[0], sizeof decrypt, out);
+        wbytes = fwrite(decrypt, sizeof decrypt[0], rbytes - pad, out);
         total += wbytes;
 
         printf("read %u bytes, wrote bytes %u\n", rbytes, wbytes);
