@@ -17,6 +17,11 @@ int main(int argc, char** argv) {
         if (argc == 3)
             outfile = argv[2];
         else {
+            outfile = strstr(infile, ".uo");
+            if (!outfile) {
+                printf("Output file required when input file does not end in .uo\n");
+                return 4;
+            }
             /* strlen doesnt count the null */
             sub = strlen(argv[1]) - 2;
             outfile = xmalloc(sub);
@@ -90,6 +95,10 @@ unsigned int uodec(char *pass, size_t len, FILE *in, FILE *out) {
 #if DEBUG
     printf("DEBUG: gcrypt handle key set\n");
 #endif
+    /* Get the filesize so we know when to remove padding */
+    fseek(in, 0L, SEEK_END);
+    size = ftell(in);
+    fseek(in, 0L, SEEK_SET);
 
     /* Set the initialization vector */
     first = fread(iv, sizeof iv[0], sizeof iv, in);
@@ -99,11 +108,6 @@ unsigned int uodec(char *pass, size_t len, FILE *in, FILE *out) {
 #if DEBUG
     printf("DEBUG: gcrypt handle init vector set\n");
 #endif
-
-    /* Get the filesize so we know when to remove padding */
-    fseek(in, 0L, SEEK_END);
-    size = ftell(in);
-    fseek(in, 0L, SEEK_SET);
 
     /* When pad is non-zero we're done, prevents another run through */
     while (!feof(in) && !pad) {
@@ -121,12 +125,13 @@ unsigned int uodec(char *pass, size_t len, FILE *in, FILE *out) {
             pad = decrypt[rbytes-1];
 
         wbytes = fwrite(decrypt, sizeof decrypt[0], rbytes - pad, out);
-        total += wbytes;
 
         if (first) {
             rbytes += first;
             first = 0;
         }
+
+        total += wbytes;
 
         printf("read %u bytes, wrote bytes %u\n", rbytes, wbytes);
     }

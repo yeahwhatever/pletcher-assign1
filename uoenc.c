@@ -123,12 +123,13 @@ unsigned int uoenc(char *pass, size_t len, FILE *in, FILE *out) {
         uocrypt_print(encrypt, rbytes + pad);
 #endif
         wbytes = fwrite(encrypt, sizeof encrypt[0], rbytes + pad, out);
-        total += wbytes;
 
         if (first) {
             wbytes += first;
             first = 0;
         }
+
+        total += wbytes;
 
         printf("Read %u bytes, wrote %u bytes\n", rbytes, wbytes);
     }
