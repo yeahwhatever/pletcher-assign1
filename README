@@ -13,4 +13,5 @@ Basic file encryption utility. Some stuff:
 -Using a salt would probably not be a bad idea for the password
 Or using something other than md5, but honestly probably doesnt matter too 
 much
+-All input is padded using PKCS7 padding scheme
 -You can adjust the DEBUG define in uocrypt.h if you want debugging output
