@@ -6,7 +6,7 @@ int main(int argc, char** argv) {
     FILE *in, *out;
     /* 16 byes, plus two for newline and null */
     char input[18], pass[16];
-    unsigned int total;
+    unsigned int total, sub;
 
     /* Parse argv */
     if (argc < 2 || argc > 3) {
@@ -17,9 +17,11 @@ int main(int argc, char** argv) {
         if (argc == 3)
             outfile = argv[2];
         else {
-            outfile = xmalloc(strlen(argv[1]) + 4);
-            strcpy(outfile, infile);
-            strcat(outfile, ".uo");
+            /* strlen doesnt count the null */
+            sub = strlen(argv[1]) - 2;
+            outfile = xmalloc(sub);
+            strncpy(outfile, infile, sub - 1);
+            outfile[sub - 1] = '\0';
         }
 
         /* Open files */
@@ -63,9 +65,9 @@ unsigned int uodec(char *pass, size_t len, FILE *in, FILE *out) {
     gcry_cipher_hd_t h;
     gcry_error_t err;
 
-    unsigned char buffer[1024], decrypt[1024];
-    unsigned short rbytes = 0, wbytes = 0;
-    unsigned int total, pad;
+    unsigned char buffer[1024], decrypt[1024], iv[16];
+    unsigned short rbytes = 0, wbytes = 0, first = 0;
+    unsigned int total = 0, pad = 0;
     long size;
 
 
@@ -90,7 +92,8 @@ unsigned int uodec(char *pass, size_t len, FILE *in, FILE *out) {
 #endif
 
     /* Set the initialization vector */
-    err = gcry_cipher_setiv(h, IV, IV_SIZE);
+    first = fread(iv, sizeof iv[0], sizeof iv, in);
+    err = gcry_cipher_setiv(h, iv, sizeof iv);
     uocrypt_error(err);
 
 #if DEBUG
@@ -102,11 +105,9 @@ unsigned int uodec(char *pass, size_t len, FILE *in, FILE *out) {
     size = ftell(in);
     fseek(in, 0L, SEEK_SET);
 
-    while (!feof(in)) {
-        pad = 0;
+    /* When pad is non-zero we're done, prevents another run through */
+    while (!feof(in) && !pad) {
         rbytes = fread(buffer, sizeof buffer[0], sizeof buffer, in);
-        if (!rbytes)
-            continue;
         err = gcry_cipher_decrypt(h, decrypt, rbytes, buffer, rbytes); 
         uocrypt_error(err);
 
@@ -121,6 +122,11 @@ unsigned int uodec(char *pass, size_t len, FILE *in, FILE *out) {
 
         wbytes = fwrite(decrypt, sizeof decrypt[0], rbytes - pad, out);
         total += wbytes;
+
+        if (first) {
+            rbytes += first;
+            first = 0;
+        }
 
         printf("read %u bytes, wrote bytes %u\n", rbytes, wbytes);
     }

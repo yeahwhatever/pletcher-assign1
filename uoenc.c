@@ -60,9 +60,9 @@ unsigned int uoenc(char *pass, size_t len, FILE *in, FILE *out) {
     gcry_cipher_hd_t h;
     gcry_error_t err;
 
-    unsigned char buffer[1024], encrypt[1024];
-    unsigned short rbytes = 0, wbytes = 0;
-    unsigned int total = 0, pad;
+    unsigned char buffer[1024], encrypt[1024], iv[16];
+    unsigned short rbytes = 0, wbytes = 0, first = 0;
+    unsigned int total = 0, pad = 0; 
 
     /* Open a cipher handle.. */
     err = gcry_cipher_open(&h, GCRY_CIPHER_RIJNDAEL128, GCRY_CIPHER_MODE_CBC, 0);
@@ -85,17 +85,18 @@ unsigned int uoenc(char *pass, size_t len, FILE *in, FILE *out) {
 #endif
 
     /* Set the initialization vector */
-    err = gcry_cipher_setiv(h, IV, IV_SIZE);
+    gcry_create_nonce(iv, sizeof iv);
+    err = gcry_cipher_setiv(h, iv, sizeof iv);
     uocrypt_error(err);
+    first = fwrite(iv, sizeof iv[0], sizeof iv, out);
 
 #if DEBUG
     printf("DEBUG: gcrypt handle init vector set\n");
 #endif
 
     while (!feof(in)) {
-        /* Zero it before reading */
-        pad = 0;
         rbytes = fread(buffer, sizeof buffer[0], sizeof buffer, in);
+        /* Last run through the loop */
         if (rbytes < sizeof buffer) {
             /* AES has a 16byte blocksize... */
             pad = BLOCK_SIZE - rbytes % BLOCK_SIZE;
@@ -123,6 +124,11 @@ unsigned int uoenc(char *pass, size_t len, FILE *in, FILE *out) {
 #endif
         wbytes = fwrite(encrypt, sizeof encrypt[0], rbytes + pad, out);
         total += wbytes;
+
+        if (first) {
+            wbytes += first;
+            first = 0;
+        }
 
         printf("Read %u bytes, wrote %u bytes\n", rbytes, wbytes);
     }
