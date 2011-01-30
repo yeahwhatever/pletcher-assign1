@@ -1,0 +1,16 @@
+Joe Pletcher - Assignment 1
+
+Basic file encryption utility. Some stuff:
+-AES128 is used in CBC mode. CBC mode was chosen for a few reasons
+    *First, I understand it the best
+    *Second, we are using gcrypt to select our IV, so randomness of IV's 
+    should not be a problem
+    *Additionally because of that, they should never be reused
+    *Lastly, in the email you sent us, the input size was only a few hundred
+    bytes, so I'm not sure if the advice there applies
+-The first 16 bytes of the output file are the IV vector used. This is alright
+ as far as I can tell, as the IV is non-secret
+-Using a salt would probably not be a bad idea for the password
+Or using something other than md5, but honestly probably doesnt matter too 
+much
+-You can adjust the DEBUG define in uocrypt.h if you want debugging output
