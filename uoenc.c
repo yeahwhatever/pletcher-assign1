@@ -22,6 +22,7 @@ int main(int argc, char** argv) {
             strcat(outfile, ".uo");
         }
 
+        /* Test to see if the output file exists, open file handles for later */
         in = fopen(infile, "rb");
         out = fopen(outfile, "rb");
         if (out) {
@@ -48,9 +49,12 @@ int main(int argc, char** argv) {
     uocrypt_zero_pad(input, pass, sizeof pass);
     uocrypt_hash_md5(pass, sizeof pass);
 
+    /* Do Work */
     total = uoenc(pass, sizeof pass, in, out);
 
     printf("Successfully encrypted %s to %s (%u bytes written).\n", infile, outfile, total);
+
+    /* Clean up and bail */
     clean(in, out, outfile, argc);
 
     return 0;
@@ -88,12 +92,14 @@ unsigned int uoenc(char *pass, size_t len, FILE *in, FILE *out) {
     gcry_create_nonce(iv, sizeof iv);
     err = gcry_cipher_setiv(h, iv, sizeof iv);
     uocrypt_error(err);
+    /* First 16 bytes of the file will be init vector for decrypt */
     first = fwrite(iv, sizeof iv[0], sizeof iv, out);
 
 #if DEBUG
     printf("DEBUG: gcrypt handle init vector set\n");
 #endif
 
+    /* Everything is init'd, lets do encryption */
     while (!feof(in)) {
         rbytes = fread(buffer, sizeof buffer[0], sizeof buffer, in);
         /* Last run through the loop */
@@ -114,6 +120,7 @@ unsigned int uoenc(char *pass, size_t len, FILE *in, FILE *out) {
 #if DEBUG
         printf("DEBUG: Read/write bytes=%u\n", rbytes + pad);
 #endif
+        /* Perform encryption */
         err = gcry_cipher_encrypt(h, encrypt, rbytes + pad, buffer, rbytes + pad);
         uocrypt_error(err);
 
@@ -122,6 +129,7 @@ unsigned int uoenc(char *pass, size_t len, FILE *in, FILE *out) {
         uocrypt_print(buffer, rbytes + pad);
         uocrypt_print(encrypt, rbytes + pad);
 #endif
+        /* Write encrypted data */
         wbytes = fwrite(encrypt, sizeof encrypt[0], rbytes + pad, out);
 
         if (first) {

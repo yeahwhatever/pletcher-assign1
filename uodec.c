@@ -58,9 +58,12 @@ int main(int argc, char** argv) {
     uocrypt_zero_pad(input, pass, sizeof pass);
     uocrypt_hash_md5(pass, sizeof pass);
 
+    /* Do Work */
     total = uodec(pass, sizeof pass, in, out);
 
     printf("Successfully decrypted %s to %s (%u bytes written).\n", infile, outfile, total);
+
+    /* Clean up and bail */
     clean(in, out, outfile, argc);
 
     return 0;
@@ -102,8 +105,13 @@ unsigned int uodec(char *pass, size_t len, FILE *in, FILE *out) {
 
     /* Set the initialization vector */
     first = fread(iv, sizeof iv[0], sizeof iv, in);
+    if (first != sizeof iv) {
+        printf("Could not read IV\n");
+        abort();   
+    }
     err = gcry_cipher_setiv(h, iv, sizeof iv);
     uocrypt_error(err);
+
 
 #if DEBUG
     printf("DEBUG: gcrypt handle init vector set\n");
@@ -112,6 +120,7 @@ unsigned int uodec(char *pass, size_t len, FILE *in, FILE *out) {
     /* When pad is non-zero we're done, prevents another run through */
     while (!feof(in) && !pad) {
         rbytes = fread(buffer, sizeof buffer[0], sizeof buffer, in);
+        /* Perform decryption */
         err = gcry_cipher_decrypt(h, decrypt, rbytes, buffer, rbytes); 
         uocrypt_error(err);
 
@@ -124,6 +133,7 @@ unsigned int uodec(char *pass, size_t len, FILE *in, FILE *out) {
         if (rbytes < sizeof buffer || ftell(in) == size)
             pad = decrypt[rbytes-1];
 
+        /* Write decryted data */
         wbytes = fwrite(decrypt, sizeof decrypt[0], rbytes - pad, out);
 
         if (first) {
