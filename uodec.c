@@ -74,7 +74,7 @@ unsigned int uodec(char *pass, size_t len, FILE *in, FILE *out) {
     gcry_error_t err;
 
     unsigned char buffer[1024], decrypt[1024], iv[16];
-    unsigned short rbytes = 0, wbytes = 0, first = 0;
+    unsigned short rbytes = 0, wbytes = 0;
     unsigned int total = 0, pad = 0;
     long size;
 
@@ -103,25 +103,24 @@ unsigned int uodec(char *pass, size_t len, FILE *in, FILE *out) {
     size = ftell(in);
     fseek(in, 0L, SEEK_SET);
 
-    /* Set the initialization vector */
-    first = fread(iv, sizeof iv[0], sizeof iv, in);
-    if (first != sizeof iv) {
-        printf("Could not read IV\n");
-        abort();   
-    }
-    err = gcry_cipher_setiv(h, iv, sizeof iv);
-    uocrypt_error(err);
-
-
-#if DEBUG
-    printf("DEBUG: gcrypt handle init vector set\n");
-#endif
-
     /* When pad is non-zero we're done, prevents another run through */
     while (!feof(in) && !pad) {
-        rbytes = fread(buffer, sizeof buffer[0], sizeof buffer, in);
+        /* Set the initialization vector */
+        rbytes = fread(iv, sizeof iv[0], sizeof iv, in);
+        if (rbytes != sizeof iv) {
+            printf("Could not read initialization vector\n");
+            abort();   
+        }
+        err = gcry_cipher_setiv(h, iv, sizeof iv);
+        uocrypt_error(err);
+
+#if DEBUG
+        printf("DEBUG: gcrypt handle init vector set\n");
+#endif
+
+        rbytes += fread(buffer, sizeof buffer[0], sizeof buffer, in);
         /* Perform decryption */
-        err = gcry_cipher_decrypt(h, decrypt, rbytes, buffer, rbytes); 
+        err = gcry_cipher_decrypt(h, decrypt, rbytes - sizeof iv, buffer, rbytes - sizeof iv); 
         uocrypt_error(err);
 
 #if DEBUG > 1
@@ -130,16 +129,11 @@ unsigned int uodec(char *pass, size_t len, FILE *in, FILE *out) {
         uocrypt_print(decrypt, sizeof decrypt);
 #endif
         /* Remove padding */
-        if (rbytes < sizeof buffer || ftell(in) == size)
-            pad = decrypt[rbytes-1];
+        if ((rbytes - sizeof iv) < sizeof buffer || ftell(in) == size)
+            pad = decrypt[rbytes - sizeof iv - 1];
 
         /* Write decryted data */
-        wbytes = fwrite(decrypt, sizeof decrypt[0], rbytes - pad, out);
-
-        if (first) {
-            rbytes += first;
-            first = 0;
-        }
+        wbytes = fwrite(decrypt, sizeof decrypt[0], rbytes - sizeof iv - pad, out);
 
         total += wbytes;
 

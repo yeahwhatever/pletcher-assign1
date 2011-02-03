@@ -65,7 +65,7 @@ unsigned int uoenc(char *pass, size_t len, FILE *in, FILE *out) {
     gcry_error_t err;
 
     unsigned char buffer[1024], encrypt[1024], iv[16];
-    unsigned short rbytes = 0, wbytes = 0, first = 0;
+    unsigned short rbytes = 0, wbytes = 0;
     unsigned int total = 0, pad = 0; 
 
     /* Open a cipher handle.. */
@@ -88,20 +88,26 @@ unsigned int uoenc(char *pass, size_t len, FILE *in, FILE *out) {
     printf("DEBUG: gcrypt handle key set\n");
 #endif
 
-    /* Set the initialization vector */
-    gcry_create_nonce(iv, sizeof iv);
-    err = gcry_cipher_setiv(h, iv, sizeof iv);
-    uocrypt_error(err);
-    /* First 16 bytes of the file will be init vector for decrypt */
-    first = fwrite(iv, sizeof iv[0], sizeof iv, out);
-
-#if DEBUG
-    printf("DEBUG: gcrypt handle init vector set\n");
-#endif
-
     /* Everything is init'd, lets do encryption */
     while (!feof(in)) {
+        /* Set the initialization vector */
+        gcry_create_nonce(iv, sizeof iv);
+        err = gcry_cipher_setiv(h, iv, sizeof iv);
+        uocrypt_error(err);
+        /* Every 1024 bytes of the file will be init vector for decrypt */
+        wbytes = fwrite(iv, sizeof iv[0], sizeof iv, out);
+
+        if (wbytes != sizeof iv) {
+            printf("Could not write initialization vector\n");
+            abort();
+        }
+
+#if DEBUG
+        printf("DEBUG: gcrypt handle init vector set\n");
+#endif
+
         rbytes = fread(buffer, sizeof buffer[0], sizeof buffer, in);
+
         /* Last run through the loop */
         if (rbytes < sizeof buffer) {
             /* AES has a 16byte blocksize... */
@@ -130,12 +136,7 @@ unsigned int uoenc(char *pass, size_t len, FILE *in, FILE *out) {
         uocrypt_print(encrypt, rbytes + pad);
 #endif
         /* Write encrypted data */
-        wbytes = fwrite(encrypt, sizeof encrypt[0], rbytes + pad, out);
-
-        if (first) {
-            wbytes += first;
-            first = 0;
-        }
+        wbytes += fwrite(encrypt, sizeof encrypt[0], rbytes + pad, out);
 
         total += wbytes;
 
